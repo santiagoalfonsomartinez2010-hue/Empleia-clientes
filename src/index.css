@@ -1,0 +1,79 @@
+/*
+  Sistema de diseño compartido de los "empleados" de Empleia.
+  Mismas variables de color, tipografía y patrones de componentes
+  (cards, badges de estado, bordes) que usa el empleado de atención
+  al cliente. Cualquier empleado nuevo debe reutilizar estas tokens.
+*/
+
+:root {
+  /* Fondos */
+  --color-fondo: #0b0d14;       /* fondo general de la app */
+  --color-card: #0f1117;        /* fondo de cards y paneles */
+  --color-card-hover: #141826;  /* hover sutil sobre cards/listas */
+  --color-borde: #1e2130;       /* bordes de cards y separadores */
+
+  /* Colores de acento de marca */
+  --color-violeta: #6366f1;     /* acción principal / activo */
+  --color-verde: #10b981;       /* éxito / procesado / online */
+  --color-amarillo: #f59e0b;    /* pendiente / advertencia */
+
+  /* Texto */
+  --color-texto: #e6e8ef;       /* texto principal */
+  --color-texto-suave: #9aa0b4; /* texto secundario */
+  --color-texto-tenue: #6b7185; /* etiquetas y metadatos */
+
+  /* Tintes translúcidos para badges y fondos suaves */
+  --violeta-tinte: rgba(99, 102, 241, 0.12);
+  --verde-tinte: rgba(16, 185, 129, 0.12);
+  --amarillo-tinte: rgba(245, 158, 11, 0.12);
+
+  /* Radios y sombras */
+  --radio: 12px;
+  --radio-sm: 8px;
+  --sombra: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* Scrollbar discreta acorde al tema oscuro */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-borde);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2e42;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

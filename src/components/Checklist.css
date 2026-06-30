@@ -1,0 +1,89 @@
+/* Checklist del cliente activo */
+.checklist {
+  background: var(--color-card);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 18px;
+}
+
+.checklist__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.checklist__titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.checklist__contador {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+/* Barra de progreso */
+.checklist__barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-borde);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.checklist__barra-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-verde), #34d399);
+  transition: width 0.4s ease;
+}
+
+.checklist__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radio-sm);
+  transition: background 0.15s ease;
+}
+
+.checklist__item:hover {
+  background: var(--color-card-hover);
+}
+
+.checklist__icono {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+
+.checklist__etiqueta {
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--color-texto);
+}
+
+/* Tareas pendientes en tono más apagado */
+.checklist__item--pendiente .checklist__etiqueta {
+  color: var(--color-texto-suave);
+}
+
+.checklist__meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto-tenue);
+}
+
+.checklist__item:not(.checklist__item--pendiente) .checklist__meta {
+  color: var(--color-verde);
+}

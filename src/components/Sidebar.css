@@ -1,0 +1,226 @@
+/* COLUMNA 1 — Sidebar de 260px de ancho */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--color-card);
+  border-right: 1px solid var(--color-borde);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+}
+
+/* --- Cabecera del empleado --- */
+.sidebar__empleado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-violeta), #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+/* Punto verde de estado "en línea" */
+.sidebar__estado-punto {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  border: 2.5px solid var(--color-card);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: punto-pulso 2s infinite;
+}
+
+@keyframes punto-pulso {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.sidebar__nombre {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-texto);
+}
+
+.sidebar__rol {
+  font-size: 12px;
+  color: var(--color-texto-suave);
+  margin-top: 2px;
+}
+
+.sidebar__separador {
+  height: 1px;
+  background: var(--color-borde);
+  margin: 18px 0;
+}
+
+/* --- Sección de clientes --- */
+.sidebar__seccion {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar__titulo {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-texto-tenue);
+  margin-bottom: 12px;
+}
+
+.sidebar__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+/* Card de cliente clicable */
+.cliente-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio-sm);
+  padding: 10px;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cliente-item:hover {
+  background: var(--color-card-hover);
+}
+
+.cliente-item--activo {
+  background: var(--violeta-tinte);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.cliente-item__avatar {
+  grid-row: 1 / 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cliente-item__texto {
+  display: flex;
+  flex-direction: column;
+}
+
+.cliente-item__nombre {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.cliente-item__progreso {
+  font-size: 11.5px;
+  color: var(--color-texto-suave);
+}
+
+/* Mini barra de progreso bajo el nombre del cliente */
+.cliente-item__barra {
+  grid-column: 2;
+  margin-top: 6px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-borde);
+  overflow: hidden;
+}
+
+.cliente-item__barra-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-violeta), #8b5cf6);
+}
+
+/* Botón de nuevo cliente */
+.sidebar__nuevo {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--color-texto-suave);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.sidebar__nuevo:hover {
+  border-color: var(--color-violeta);
+  color: var(--color-violeta);
+  background: var(--violeta-tinte);
+}
+
+/* --- Pie: total migrado hoy --- */
+.sidebar__pie {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: var(--radio-sm);
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__pie-etiqueta {
+  font-size: 11px;
+  color: var(--color-texto-tenue);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.sidebar__pie-valor {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-verde);
+}
