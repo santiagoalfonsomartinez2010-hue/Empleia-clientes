@@ -8,6 +8,11 @@ dist
 dist-ssr
 *.local
 
+# Variables de entorno (contienen claves: NO subir). .env.example sí se sube.
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log

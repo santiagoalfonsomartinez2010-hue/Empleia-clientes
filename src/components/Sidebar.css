@@ -105,6 +105,13 @@
   overflow-y: auto;
 }
 
+/* Texto de estado de carga / lista vacía */
+.sidebar__vacio {
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  padding: 8px 4px;
+}
+
 /* Card de cliente clicable */
 .cliente-item {
   width: 100%;

@@ -3,47 +3,65 @@
 Herramienta **interna** de Empleia para migrar la información de clientes nuevos
 hacia el sistema. La usa únicamente el equipo de Empleia (no la ve el cliente).
 
-> **Fase 1 (actual):** frontend con datos simulados. No hay backend real: la
-> subida y el procesado de archivos están simulados en memoria.
-> **Fase 2 (pendiente):** conectar a Supabase y al procesado real de documentos.
+> **Fase 2 (actual):** conectado a **Supabase** (clientes, documentos, proveedores,
+> empleados, FAQs…) y a la **API de Anthropic** para analizar documentos reales.
+> **Fase 1:** frontend con datos simulados (ya superada).
 
 ## Tecnología
 
 - **React + Vite**
-- Sin dependencias de UI externas (iconos SVG inline)
+- **@supabase/supabase-js** para la base de datos
+- **xlsx** para parsear Excel/CSV en el navegador
+- **API de Anthropic** (`claude-sonnet-4-6`) para extraer datos de los documentos
 - Tipografía **Inter**, interfaz íntegramente en **español**
+
+## Configuración (.env)
+
+Copia `.env.example` a `.env` y rellena:
+
+```bash
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-anon-key
+VITE_ANTHROPIC_API_KEY=sk-ant-...
+```
+
+> ⚠️ **Seguridad:** al no haber backend todavía, la `VITE_ANTHROPIC_API_KEY` se
+> incrusta en el bundle del navegador y es extraíble por cualquiera que acceda a
+> la herramienta. La key anónima de Supabase **sí** está pensada para el cliente
+> (protégela con RLS); la de Anthropic **no**. Úsala solo en esta herramienta
+> interna y, en una próxima fase, mueve la llamada a la API a una función
+> serverless/Edge.
+
+## Qué hace (funcionalidad real)
+
+1. **Clientes reales:** al abrir la app se consulta `clientes_empresa` y se
+   muestran en el sidebar. "+ Nuevo cliente" abre un formulario (nombre, sector,
+   ciudad) que inserta una fila nueva.
+2. **Análisis de documentos:** al subir un archivo real (Excel/CSV se parsean con
+   `xlsx`; PDF/imágenes se mandan en base64), se llama a la API de Anthropic con
+   un prompt que devuelve un JSON `{ tipo, registros }` (proveedores, empleados o
+   FAQs). Mientras tanto la card muestra **⏳ Procesando**.
+3. **Detección de duplicados:** antes de previsualizar, se consultan los registros
+   existentes del cliente y se comparan por similitud de texto (ignora
+   mayúsculas/espacios y detecta si un nombre contiene al otro). Las filas
+   duplicadas se marcan con ⚠️.
+4. **Inserción real:** al pulsar "Confirmar e insertar" se insertan las filas no
+   duplicadas en `proveedores`/`empleados`/`faqs`, se registra el documento en
+   `documentos_procesados` y se actualiza `porcentaje_completado` del cliente.
+5. **Checklist con datos reales:** cuenta filas reales en `proveedores`,
+   `empleados`, `faqs` y `productos_servicios` para el cliente activo.
+
+## Tablas de Supabase usadas
+
+`clientes_empresa`, `documentos_procesados`, `proveedores`, `empleados`, `faqs`,
+`productos_servicios`. (Ya existen en Supabase; la app no las crea.)
 
 ## Diseño
 
-Comparte el mismo sistema de diseño que el resto de "empleados" de Empleia
-(definido en `src/index.css`):
-
-| Token             | Valor     | Uso                          |
-| ----------------- | --------- | ---------------------------- |
-| Fondo             | `#0B0D14` | fondo general                |
-| Card              | `#0F1117` | cards y paneles              |
-| Borde             | `#1E2130` | bordes y separadores         |
-| Violeta           | `#6366F1` | acción principal / activo    |
-| Verde             | `#10B981` | éxito / procesado / en línea |
-| Amarillo          | `#F59E0B` | pendiente / advertencia      |
-
-## Estructura de la pantalla
-
-Layout de **2 columnas** (sin chat: es una herramienta de trabajo):
-
-1. **Sidebar (260px):** avatar del empleado con punto verde, nombre/rol, lista
-   de clientes en proceso (clicables), botón de nuevo cliente y total migrado hoy.
-2. **Zona de trabajo:** selector del cliente activo, zona de arrastrar/subir
-   documentos, lista de documentos procesados hoy (cards expandibles con tabla
-   de previsualización y botones de confirmar/editar) y checklist del cliente.
-
-## Probar la simulación de subida
-
-En la zona de trabajo hay botones de prueba (**Simular subida de Excel / PDF /
-imagen**). Al pulsarlos, el documento aparece en estado **⏳ Procesando** durante
-2 segundos y luego pasa a **✅ Procesado** mostrando datos de ejemplo extraídos.
-También se puede arrastrar un archivo real sobre la zona punteada (se simula
-según su extensión).
+Mismo sistema de diseño que el resto de "empleados" de Empleia
+(definido en `src/index.css`): fondo `#0B0D14`, cards `#0F1117`, bordes
+`#1E2130`, violeta `#6366F1`, verde `#10B981`, amarillo `#F59E0B`, tipografía
+Inter. Layout de **2 columnas** (sidebar + zona de trabajo), sin chat.
 
 ## Scripts
 
@@ -58,13 +76,22 @@ npm run preview  # previsualizar el build
 
 ```
 src/
-  App.jsx                  Estado y lógica principal (2 columnas)
+  App.jsx                  Estado y lógica principal (carga real, subida, inserción)
+  supabaseClient.js        Cliente de Supabase desde el .env
   index.css                Sistema de diseño compartido (tokens de color)
-  data/clientesMock.js     Datos simulados de clientes y plantillas de subida
+  lib/
+    anthropic.js           Llamada a la API de Anthropic para analizar documentos
+    parseArchivo.js        Parseo de Excel/CSV y conversión a base64
+    similitud.js           Detección de duplicados por similitud de texto
+    tiposDeteccion.js      Config de columnas/tabla/campos por tipo detectado
+    visuales.js            Iniciales y color de avatar por cliente
+  services/
+    onboardingService.js   Todas las consultas a Supabase
   components/
-    Sidebar.jsx            Columna 1
-    ZonaTrabajo.jsx        Columna 2
-    DocumentoCard.jsx      Card de documento expandible
+    Sidebar.jsx            Columna 1 (clientes reales, total migrado hoy)
+    ZonaTrabajo.jsx        Columna 2 (subida real de archivos)
+    ModalNuevoCliente.jsx  Formulario de alta de cliente
+    DocumentoCard.jsx      Card de documento (procesando / procesado / error / histórico)
     TablaPrevisualizacion.jsx  Tabla de datos extraídos + acciones
     Checklist.jsx          Checklist con barra de progreso
     Badge.jsx              Badge de estado reutilizable

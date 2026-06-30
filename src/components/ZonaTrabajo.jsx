@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import './ZonaTrabajo.css'
 import DocumentoCard from './DocumentoCard'
 import Checklist from './Checklist'
@@ -7,39 +7,51 @@ import { IconoSubir } from './Iconos'
 /*
   COLUMNA 2 — Zona de trabajo (flex: 1).
   Contiene el selector del cliente activo, la zona de arrastrar/subir
-  documentos, la lista de documentos procesados hoy y el checklist.
-  Sin chat: es una herramienta de trabajo, no de conversación.
+  documentos REALES (Excel, CSV, PDF o imágenes), la lista de documentos
+  procesados y el checklist. Sin chat: es una herramienta de trabajo.
 */
 export default function ZonaTrabajo({
   cliente,
+  cargando,
   docExpandidoId,
   onToggleDoc,
-  onSimularSubida,
+  onProcesarArchivos,
   onConfirmar,
   onEditar,
 }) {
   // Estado visual del arrastre sobre la zona de subida
   const [arrastrando, setArrastrando] = useState(false)
+  // Referencia al input de archivo oculto (lo abre el botón)
+  const inputRef = useRef(null)
 
-  // Maneja el "drop" de archivos reales: como no hay backend, simulamos
-  // la subida tomando la extensión para elegir el tipo de plantilla.
+  // Procesa los archivos soltados sobre la zona
   const manejarDrop = (e) => {
     e.preventDefault()
     setArrastrando(false)
-    const archivo = e.dataTransfer.files?.[0]
-    if (!archivo) return
-    const nombre = archivo.name.toLowerCase()
-    let tipo = 'imagen'
-    if (nombre.endsWith('.xlsx') || nombre.endsWith('.xls') || nombre.endsWith('.csv')) tipo = 'excel'
-    else if (nombre.endsWith('.pdf')) tipo = 'pdf'
-    onSimularSubida(tipo)
+    const archivos = Array.from(e.dataTransfer.files || [])
+    if (archivos.length > 0) onProcesarArchivos(archivos)
+  }
+
+  // Procesa los archivos elegidos desde el explorador
+  const manejarSeleccion = (e) => {
+    const archivos = Array.from(e.target.files || [])
+    if (archivos.length > 0) onProcesarArchivos(archivos)
+    e.target.value = '' // permite volver a subir el mismo archivo
+  }
+
+  if (cargando) {
+    return (
+      <main className="zona">
+        <div className="zona__vacio">Cargando…</div>
+      </main>
+    )
   }
 
   if (!cliente) {
     return (
       <main className="zona">
         <div className="zona__vacio">
-          Selecciona un cliente en la barra lateral para empezar.
+          Crea o selecciona un cliente en la barra lateral para empezar.
         </div>
       </main>
     )
@@ -65,7 +77,7 @@ export default function ZonaTrabajo({
       </header>
 
       <div className="zona__scroll">
-        {/* Zona de arrastrar o subir documentos */}
+        {/* Zona de arrastrar o subir documentos reales */}
         <div
           className={`zona-subida ${arrastrando ? 'zona-subida--activa' : ''}`}
           onDragOver={(e) => {
@@ -79,26 +91,32 @@ export default function ZonaTrabajo({
             <IconoSubir />
           </span>
           <p className="zona-subida__texto">Arrastra o sube documentos aquí</p>
-          <p className="zona-subida__sub">Excel, PDF o imágenes · se procesan automáticamente</p>
+          <p className="zona-subida__sub">Excel, CSV, PDF o imágenes · se analizan automáticamente</p>
 
-          {/* Botones de prueba para simular subidas (FASE 1, sin backend) */}
+          {/* Input de archivo oculto + botón que lo dispara */}
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept=".xlsx,.xls,.csv,.pdf,image/*"
+            onChange={manejarSeleccion}
+            style={{ display: 'none' }}
+          />
           <div className="zona-subida__botones">
-            <button type="button" className="zona-subida__btn" onClick={() => onSimularSubida('excel')}>
-              Simular subida de Excel
-            </button>
-            <button type="button" className="zona-subida__btn" onClick={() => onSimularSubida('pdf')}>
-              Simular subida de PDF
-            </button>
-            <button type="button" className="zona-subida__btn" onClick={() => onSimularSubida('imagen')}>
-              Simular subida de imagen
+            <button
+              type="button"
+              className="zona-subida__btn"
+              onClick={() => inputRef.current?.click()}
+            >
+              Seleccionar archivo
             </button>
           </div>
         </div>
 
-        {/* Lista de documentos procesados hoy */}
+        {/* Lista de documentos procesados */}
         <section className="zona__seccion">
           <h3 className="zona__titulo">
-            Documentos procesados hoy
+            Documentos procesados
             <span className="zona__titulo-contador">{cliente.documentos.length}</span>
           </h3>
 
@@ -120,7 +138,7 @@ export default function ZonaTrabajo({
           )}
         </section>
 
-        {/* Checklist del cliente activo */}
+        {/* Checklist del cliente activo (datos reales) */}
         <Checklist items={cliente.checklist} />
       </div>
     </main>

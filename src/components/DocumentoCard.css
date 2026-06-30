@@ -11,6 +11,22 @@
   border-color: rgba(99, 102, 241, 0.4);
 }
 
+/* Documento que falló al analizarse */
+.doc-card--error {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Nota informativa para documentos ya insertados */
+.doc-card__nota {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-borde);
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+
 .doc-card__cabecera {
   width: 100%;
   display: flex;

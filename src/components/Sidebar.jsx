@@ -1,14 +1,20 @@
 import './Sidebar.css'
 import { IconoMas } from './Iconos'
-import { TOTAL_MIGRADO_HOY } from '../data/clientesMock'
 
 /*
   COLUMNA 1 — Sidebar izquierdo (260px).
   Muestra al empleado de Onboarding, la lista de clientes en proceso
   (clicables para seleccionarlos), el botón de nuevo cliente y el
-  total de registros migrados hoy.
+  total de registros migrados hoy (datos reales de Supabase).
 */
-export default function Sidebar({ clientes, clienteActivoId, onSeleccionarCliente, onNuevoCliente }) {
+export default function Sidebar({
+  clientes,
+  clienteActivoId,
+  cargando,
+  totalMigradoHoy,
+  onSeleccionarCliente,
+  onNuevoCliente,
+}) {
   return (
     <aside className="sidebar">
       {/* Cabecera: avatar del empleado con punto verde de "en línea" */}
@@ -28,6 +34,13 @@ export default function Sidebar({ clientes, clienteActivoId, onSeleccionarClient
       {/* Lista de clientes en proceso */}
       <div className="sidebar__seccion">
         <h2 className="sidebar__titulo">Clientes en proceso</h2>
+
+        {/* Estados de carga / vacío */}
+        {cargando && <p className="sidebar__vacio">Cargando clientes…</p>}
+        {!cargando && clientes.length === 0 && (
+          <p className="sidebar__vacio">No hay clientes todavía.</p>
+        )}
+
         <ul className="sidebar__lista">
           {clientes.map((cliente) => {
             const activo = cliente.id === clienteActivoId
@@ -71,7 +84,7 @@ export default function Sidebar({ clientes, clienteActivoId, onSeleccionarClient
       {/* Pie del sidebar: total migrado hoy */}
       <div className="sidebar__pie">
         <span className="sidebar__pie-etiqueta">Total migrado hoy</span>
-        <span className="sidebar__pie-valor">{TOTAL_MIGRADO_HOY} registros</span>
+        <span className="sidebar__pie-valor">{totalMigradoHoy} registros</span>
       </div>
     </aside>
   )
