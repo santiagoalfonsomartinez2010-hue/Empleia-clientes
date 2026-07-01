@@ -7,6 +7,18 @@ hacia el sistema. La usa únicamente el equipo de Empleia (no la ve el cliente).
 > empleados, FAQs…) y a la **API de Anthropic** para analizar documentos reales.
 > **Fase 1:** frontend con datos simulados (ya superada).
 
+## Probarlo en el iPad (o cualquier dispositivo) — Deploy a Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsantiagoalfonsomartinez2010-hue%2FEmpleia-clientes%2Ftree%2Fclaude%2Fempleia-onboarding-frontend-okpohb&env=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_ANTHROPIC_API_KEY&envDescription=Claves%20necesarias%3A%20Supabase%20(URL%20%2B%20anon%20key)%20y%20la%20API%20key%20de%20Anthropic&project-name=empleia-onboarding&repository-name=empleia-onboarding)
+
+Al pulsar el botón, Vercel:
+1. Te pide iniciar sesión con GitHub (si no lo has hecho).
+2. Clona esta rama (`claude/empleia-onboarding-frontend-okpohb`) a un repo nuevo en tu cuenta.
+3. Te pide rellenar las 3 variables de entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ANTHROPIC_API_KEY`).
+4. Despliega automáticamente (detecta Vite solo) y te da una URL pública para abrir en Safari.
+
+Si más adelante cambias una variable de entorno en Vercel, tienes que pulsar **Redeploy** para que el nuevo build la incluya (Vite las incrusta en tiempo de build).
+
 ## Tecnología
 
 - **React + Vite**
