@@ -16,23 +16,49 @@
   <body>
     <!--
       Contenido de reserva DENTRO de #root: React lo reemplaza al montarse.
-      Si este texto se queda fijo en pantalla, significa que el JavaScript no
-      se está ejecutando (el HTML sí carga). Es temporal, para diagnóstico.
+      Si este texto se queda fijo, el JavaScript no se está ejecutando.
     -->
     <div id="root">
       <div
-        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #9aa0b4; font: 14px/1.5 system-ui, sans-serif; text-align: center; padding: 24px;"
+        id="diag"
+        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #9aa0b4; font: 13px/1.6 system-ui, sans-serif; text-align: center; padding: 24px;"
       >
-        Cargando Empleia… (si este texto no desaparece, el JavaScript no arrancó)
+        Cargando Empleia…
       </div>
     </div>
-    <!-- Marcador de build (cambia con cada versión para detectar caché de Safari) -->
+
+    <!-- Marcador de build (cambia con cada versión para detectar caché) -->
     <div
       id="marcador-build"
-      style="position: fixed; bottom: 6px; right: 8px; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
+      style="position: fixed; bottom: 6px; right: 8px; max-width: 92vw; word-break: break-all; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
     >
-      BUILD v3
+      BUILD v4
     </div>
+
+    <!--
+      Diagnóstico en pantalla (script clásico, se ejecuta siempre): muestra la
+      ruta real del <script type=module> servido y si ese archivo carga (HTTP)
+      o da 404. Así sabemos si Vercel sirve /assets (build) o /src (sin compilar).
+      Temporal: se quita cuando todo funcione.
+    -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var s = document.querySelector('script[type="module"]')
+        var src = s ? s.getAttribute('src') : '(sin script de módulo)'
+        var marcador = document.getElementById('marcador-build')
+        var diag = document.getElementById('diag')
+        function pintar(txt) {
+          if (marcador) marcador.textContent = txt
+          if (diag) diag.textContent = txt
+        }
+        pintar('v4 · script = ' + src)
+        if (src && src.indexOf('/assets/') === 0) {
+          fetch(src)
+            .then(function (r) { pintar('v4 · ' + src + ' · HTTP ' + r.status) })
+            .catch(function () { pintar('v4 · ' + src + ' · fetch FALLÓ') })
+        }
+      })
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
