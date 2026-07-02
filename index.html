@@ -42,20 +42,38 @@
       Temporal: se quita cuando todo funcione.
     -->
     <script>
+      // Captura global de errores: muestra en pantalla el error real que impida
+      // arrancar la app (por ejemplo un fallo al evaluar el bundle en Safari).
+      window.addEventListener('error', function (e) {
+        var diag = document.getElementById('diag')
+        var msg = (e && e.message) || (e && e.error && e.error.message) || 'error desconocido'
+        if (diag && diag.textContent.indexOf('ERROR JS') === -1) {
+          diag.style.color = '#f59e0b'
+          diag.textContent = 'ERROR JS: ' + msg
+        }
+      })
+      window.addEventListener('unhandledrejection', function (e) {
+        var diag = document.getElementById('diag')
+        var r = e && e.reason
+        var msg = (r && r.message) || String(r || 'promesa rechazada')
+        if (diag && diag.textContent.indexOf('ERROR JS') === -1) {
+          diag.style.color = '#f59e0b'
+          diag.textContent = 'ERROR JS: ' + msg
+        }
+      })
+
       document.addEventListener('DOMContentLoaded', function () {
         var s = document.querySelector('script[type="module"]')
         var src = s ? s.getAttribute('src') : '(sin script de módulo)'
         var marcador = document.getElementById('marcador-build')
-        var diag = document.getElementById('diag')
-        function pintar(txt) {
+        function pintarMarcador(txt) {
           if (marcador) marcador.textContent = txt
-          if (diag) diag.textContent = txt
         }
-        pintar('v4 · script = ' + src)
+        pintarMarcador('v5 · script = ' + src)
         if (src && src.indexOf('/assets/') === 0) {
           fetch(src)
-            .then(function (r) { pintar('v4 · ' + src + ' · HTTP ' + r.status) })
-            .catch(function () { pintar('v4 · ' + src + ' · fetch FALLÓ') })
+            .then(function (r) { pintarMarcador('v5 · ' + src + ' · HTTP ' + r.status) })
+            .catch(function () { pintarMarcador('v5 · ' + src + ' · fetch FALLÓ') })
         }
       })
     </script>
