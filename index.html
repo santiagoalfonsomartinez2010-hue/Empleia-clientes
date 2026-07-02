@@ -15,6 +15,17 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Marcador de diagnóstico: se muestra aunque el JavaScript falle por completo.
+      Sirve para comprobar que se está sirviendo el build nuevo (no una versión
+      cacheada o antigua). Se puede quitar una vez confirmado que todo funciona.
+    -->
+    <div
+      id="marcador-build"
+      style="position: fixed; bottom: 6px; right: 8px; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
+    >
+      BUILD-CHECK-OK ✓
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
