@@ -14,17 +14,24 @@
     <title>Empleia · Onboarding</title>
   </head>
   <body>
-    <div id="root"></div>
     <!--
-      Marcador de diagnóstico: se muestra aunque el JavaScript falle por completo.
-      Sirve para comprobar que se está sirviendo el build nuevo (no una versión
-      cacheada o antigua). Se puede quitar una vez confirmado que todo funciona.
+      Contenido de reserva DENTRO de #root: React lo reemplaza al montarse.
+      Si este texto se queda fijo en pantalla, significa que el JavaScript no
+      se está ejecutando (el HTML sí carga). Es temporal, para diagnóstico.
     -->
+    <div id="root">
+      <div
+        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #9aa0b4; font: 14px/1.5 system-ui, sans-serif; text-align: center; padding: 24px;"
+      >
+        Cargando Empleia… (si este texto no desaparece, el JavaScript no arrancó)
+      </div>
+    </div>
+    <!-- Marcador de build (cambia con cada versión para detectar caché de Safari) -->
     <div
       id="marcador-build"
       style="position: fixed; bottom: 6px; right: 8px; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
     >
-      BUILD-CHECK-OK ✓
+      BUILD v3
     </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
