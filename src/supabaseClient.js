@@ -6,11 +6,23 @@ import { createClient } from '@supabase/supabase-js'
   Vite solo expone al navegador las variables que empiezan por VITE_.
 */
 
-// .trim() defiende contra espacios o saltos de línea que se cuelan al pegar
-// los valores en el panel de Vercel (una causa habitual de que createClient
-// lance un error y la app no arranque).
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim()
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
+// Normaliza un valor pegado en el panel de Vercel: quita espacios/saltos y
+// comillas envolventes (errores habituales al copiar y pegar).
+function limpiar(valor) {
+  return (valor || '')
+    .trim()
+    .replace(/^["']+|["']+$/g, '') // quita comillas al principio/fin
+    .trim()
+}
+
+const supabaseAnonKey = limpiar(import.meta.env.VITE_SUPABASE_ANON_KEY)
+
+// La URL, además, se completa con https:// si se pegó sin el esquema
+// (otra causa típica del error "Invalid supabaseUrl").
+let supabaseUrl = limpiar(import.meta.env.VITE_SUPABASE_URL)
+if (supabaseUrl && !/^https?:\/\//i.test(supabaseUrl)) {
+  supabaseUrl = 'https://' + supabaseUrl
+}
 
 export const supabaseConfigurado = Boolean(supabaseUrl && supabaseAnonKey)
 
