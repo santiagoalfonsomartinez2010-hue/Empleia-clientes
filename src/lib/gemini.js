@@ -9,7 +9,10 @@ import { parsearExcel, archivoABase64 } from './parseArchivo'
   producción la llamada debería ir en un backend.
 */
 
-const MODELO = 'gemini-1.5-flash'
+// Modelo de Gemini. Los modelos 1.5 fueron retirados de la API pública, así que
+// usamos un modelo 2.x actual por defecto. Se puede sobrescribir con la variable
+// de entorno VITE_GEMINI_MODEL sin tocar el código.
+const MODELO = (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash').trim()
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`
 
 // Instrucción para el modelo (se envía como system_instruction en Gemini):
