@@ -24,7 +24,7 @@ Si más adelante cambias una variable de entorno en Vercel, tienes que pulsar **
 - **React + Vite**
 - **@supabase/supabase-js** para la base de datos
 - **xlsx** para parsear Excel/CSV en el navegador
-- **API de Google Gemini** (`gemini-2.0-flash`) para extraer datos de los documentos
+- **API de Google Gemini** (`gemini-2.5-flash-lite`) para extraer datos de los documentos
 - Tipografía **Inter**, interfaz íntegramente en **español**
 
 ## Configuración (.env)
