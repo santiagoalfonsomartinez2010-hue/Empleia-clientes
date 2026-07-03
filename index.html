@@ -32,7 +32,7 @@
       id="marcador-build"
       style="position: fixed; bottom: 6px; right: 8px; max-width: 92vw; word-break: break-all; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
     >
-      BUILD v4
+      BUILD v6 · gemini-2.0-flash
     </div>
 
     <!--
@@ -69,11 +69,11 @@
         function pintarMarcador(txt) {
           if (marcador) marcador.textContent = txt
         }
-        pintarMarcador('v5 · script = ' + src)
+        pintarMarcador('v6 (gemini-2.0-flash) · ' + src)
         if (src && src.indexOf('/assets/') === 0) {
           fetch(src)
-            .then(function (r) { pintarMarcador('v5 · ' + src + ' · HTTP ' + r.status) })
-            .catch(function () { pintarMarcador('v5 · ' + src + ' · fetch FALLÓ') })
+            .then(function (r) { pintarMarcador('v6 (gemini-2.0-flash) · HTTP ' + r.status) })
+            .catch(function () { pintarMarcador('v6 · fetch FALLÓ') })
         }
       })
     </script>
