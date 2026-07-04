@@ -1,0 +1,110 @@
+/* --- Barras horizontales (registros por fuente) --- */
+
+.grafico-vacio {
+  font-size: 13px;
+  color: var(--color-texto-tenue);
+}
+
+.grafico-barras {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grafico-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grafico-nombre {
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grafico-pista {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* eje base a la izquierda */
+  border-left: 2px solid var(--color-borde);
+  padding-left: 1px;
+}
+
+.grafico-barra {
+  height: 14px;
+  background: var(--color-violeta);
+  /* extremo de dato redondeado; la base queda anclada al eje */
+  border-radius: 0 4px 4px 0;
+  transition: width 0.4s ease;
+  min-width: 3px;
+}
+
+.grafico-fila:hover .grafico-barra {
+  filter: brightness(1.2);
+}
+
+.grafico-valor {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto);
+}
+
+/* --- Barra apilada (registros por categoría) --- */
+
+.apilada {
+  display: flex;
+  gap: 2px; /* el fondo asoma entre segmentos: separación sin depender del color */
+  height: 18px;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.apilada-segmento {
+  flex-basis: 0;
+  min-width: 6px;
+}
+
+.apilada-segmento:hover {
+  filter: brightness(1.15);
+}
+
+.apilada-leyenda {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.apilada-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+
+.apilada-leyenda b {
+  margin-left: auto;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.apilada-pct {
+  width: 42px;
+  text-align: right;
+  color: var(--color-texto-tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.apilada-chip {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}

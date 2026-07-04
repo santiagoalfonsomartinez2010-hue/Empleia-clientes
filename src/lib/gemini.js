@@ -1,32 +1,68 @@
-import { parsearExcel, archivoABase64 } from './parseArchivo'
+import { parsearExcel, leerTexto, archivoABase64 } from './parseArchivo'
 
 /*
-  Llamada a la API de Google Gemini para analizar un documento subido y extraer
-  los datos estructurados que contiene (proveedores, empleados o FAQs).
+  Llamadas a la API de Google Gemini.
+
+  Dos funciones:
+   - analizarFuente(file, tipoArchivo, apiKey): analiza UN archivo subido y
+     devuelve su contenido normalizado (título, categoría, tabla, eventos,
+     métricas) para pintarlo en el panel unificado.
+   - generarResumenGlobal(fuentes, apiKey): recibe los resúmenes de todas las
+     fuentes ya procesadas y devuelve un análisis conjunto (titular, insights
+     y sugerencias).
 
   ⚠️ SEGURIDAD: al no haber backend, la API key viaja al navegador (va como
-  parámetro ?key= en la URL). Úsala solo en esta herramienta interna; en
-  producción la llamada debería ir en un backend.
+  parámetro ?key= en la URL). Úsala solo en esta demo; en producción la
+  llamada debería ir en un backend.
 */
 
-// Modelo de Gemini. Los modelos 1.5 fueron retirados de la API pública, así que
-// usamos un modelo 2.x actual por defecto. Se puede sobrescribir con la variable
-// de entorno VITE_GEMINI_MODEL sin tocar el código.
+// Los modelos 1.5 fueron retirados de la API pública; usamos un modelo 2.x
+// actual por defecto. Se puede sobrescribir con VITE_GEMINI_MODEL.
 const MODELO = (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite').trim()
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`
 
-// Instrucción para el modelo (se envía como system_instruction en Gemini):
-// qué buscar y en qué formato devolverlo. Igual que antes.
-const INSTRUCCION = `Analiza este documento y determina si contiene datos de proveedores, empleados o FAQs.
+// Categorías fijas en las que el modelo clasifica cada fuente. El panel las
+// usa para colorear el gráfico de categorías, así que deben ser un conjunto
+// cerrado y pequeño.
+export const CATEGORIAS = [
+  'finanzas',
+  'personas',
+  'clientes',
+  'inventario',
+  'agenda',
+  'operaciones',
+  'otros',
+]
+
+const INSTRUCCION_FUENTE = `Eres el analista de datos de Empleia. Recibes el contenido de UN archivo
+(hoja de cálculo, PDF, imagen, calendario o texto) que un negocio quiere ver en su panel unificado.
 Devuelve SOLO un JSON válido (sin texto adicional, sin markdown) con esta estructura exacta:
-{ "tipo": "proveedores" | "empleados" | "faqs", "registros": [ ... ] }
+{
+  "titulo": "nombre corto y descriptivo del contenido (máx. 6 palabras)",
+  "categoria": "finanzas" | "personas" | "clientes" | "inventario" | "agenda" | "operaciones" | "otros",
+  "resumen": "1 o 2 frases explicando qué contiene y qué destaca",
+  "columnas": ["nombres de las columnas de la tabla normalizada"],
+  "registros": [ { ...objetos con exactamente esas columnas... } ],
+  "eventos": [ { "fecha": "AAAA-MM-DD", "titulo": "descripción corta" } ],
+  "metricas": [ { "etiqueta": "nombre de la cifra", "valor": "valor con su unidad" } ]
+}
 
-Según el tipo, cada objeto de "registros" debe tener estos campos (usa cadena vacía si falta el dato):
-- proveedores: { "nombre", "email", "telefono", "categoria", "iban", "notas" }
-- empleados: { "nombre", "cargo", "tipo_contrato", "fecha_inicio", "fecha_vencimiento_contrato", "estado", "obra_asignada" }
-- faqs: { "pregunta", "respuesta", "categoria" }
+Reglas:
+- "registros": normaliza los datos en una tabla coherente (máximo 40 filas y 6 columnas).
+  Si el documento no es tabular (un contrato, una foto de una pizarra…), extrae los datos clave como filas.
+- "eventos": citas, vencimientos, entregas o fechas relevantes que aparezcan en el documento (vacío si no hay).
+- "metricas": entre 2 y 4 cifras destacadas calculables del contenido (totales, medias, recuentos), con unidad.
+- Fechas siempre en formato AAAA-MM-DD. No inventes datos que no estén en el documento.`
 
-Las fechas en formato AAAA-MM-DD. No inventes datos que no estén en el documento.`
+const INSTRUCCION_RESUMEN = `Eres el analista jefe de Empleia. Recibes los resúmenes de TODAS las fuentes de datos
+que un negocio ha conectado a su panel unificado (tablas, calendarios, documentos…).
+Devuelve SOLO un JSON válido (sin texto adicional, sin markdown) con esta estructura exacta:
+{
+  "titular": "una frase que resuma el estado global del negocio según sus datos",
+  "insights": ["entre 3 y 5 observaciones concretas cruzando las distintas fuentes"],
+  "sugerencias": ["entre 2 y 3 acciones recomendadas y accionables"]
+}
+Escribe en español, con cifras concretas cuando existan. No inventes datos que no estén en los resúmenes.`
 
 // Extrae el primer objeto JSON que aparezca en un texto (por si el modelo añade prosa)
 function extraerJson(texto) {
@@ -38,52 +74,21 @@ function extraerJson(texto) {
   return JSON.parse(texto.slice(inicio, fin + 1))
 }
 
-/*
-  Analiza un archivo y devuelve { tipo, registros }.
-  - tipoArchivo: 'excel' | 'pdf' | 'imagen' (decide cómo preparar el contenido).
-*/
-export async function analizarDocumento(file, tipoArchivo) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+// Llamada base a Gemini: system_instruction + partes del usuario → JSON parseado
+async function llamarGemini(apiKey, instruccion, partes) {
   if (!apiKey) {
     throw new Error(
-      'Falta VITE_GEMINI_API_KEY en el .env. Añade tu key de Google Gemini para analizar documentos.'
+      'Falta la API key de Gemini. Añádela desde el botón "API key" de la barra lateral (es gratuita en aistudio.google.com).'
     )
   }
 
-  // Construimos las "parts" del mensaje del usuario según el tipo de archivo.
-  // En Gemini, cada archivo (PDF/imagen) va como inline_data { mime_type, data }.
-  let partes
-  if (tipoArchivo === 'excel') {
-    // Excel/CSV: lo parseamos a texto JSON y lo mandamos como texto
-    const textoTabla = await parsearExcel(file)
-    partes = [
-      { text: `Contenido del archivo "${file.name}" (en JSON por hojas):\n${textoTabla}` },
-    ]
-  } else if (tipoArchivo === 'pdf') {
-    // PDF: se manda como dato en línea base64
-    const { base64 } = await archivoABase64(file)
-    partes = [
-      { inline_data: { mime_type: 'application/pdf', data: base64 } },
-      { text: `Analiza este documento "${file.name}".` },
-    ]
-  } else {
-    // Imagen: se manda como imagen en línea base64 (el modelo la lee por visión/OCR)
-    const { base64, mediaType } = await archivoABase64(file)
-    partes = [
-      { inline_data: { mime_type: mediaType, data: base64 } },
-      { text: `Analiza esta imagen "${file.name}".` },
-    ]
-  }
-
-  // Cuerpo en formato Gemini: system_instruction + contents con role "user".
   const cuerpo = {
-    system_instruction: { parts: [{ text: INSTRUCCION }] },
+    system_instruction: { parts: [{ text: instruccion }] },
     contents: [{ role: 'user', parts: partes }],
-    generationConfig: { maxOutputTokens: 4096 },
+    generationConfig: { maxOutputTokens: 8192 },
   }
 
-  // Llamada a la API. La autenticación va como ?key= en la URL (no en cabeceras).
-  // Envuelta para que el llamador maneje los errores con try/catch.
+  // La autenticación va como ?key= en la URL (no en cabeceras).
   const respuesta = await fetch(`${API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -101,10 +106,72 @@ export async function analizarDocumento(file, tipoArchivo) {
   if (!texto) {
     throw new Error('La respuesta del modelo no contiene texto')
   }
+  return extraerJson(texto)
+}
 
-  const resultado = extraerJson(texto)
-  if (!resultado.tipo || !Array.isArray(resultado.registros)) {
-    throw new Error('El JSON devuelto no tiene la estructura esperada')
+/*
+  Analiza un archivo y devuelve el contenido normalizado de la fuente:
+  { titulo, categoria, resumen, columnas, registros, eventos, metricas }.
+  - tipoArchivo: 'excel' | 'pdf' | 'imagen' | 'calendario' | 'texto'
+*/
+export async function analizarFuente(file, tipoArchivo, apiKey) {
+  // Construimos las "parts" del mensaje según el tipo de archivo. En Gemini,
+  // cada archivo binario (PDF/imagen) va como inline_data { mime_type, data }.
+  let partes
+  if (tipoArchivo === 'excel') {
+    const textoTabla = await parsearExcel(file)
+    partes = [{ text: `Contenido del archivo "${file.name}" (en JSON por hojas):\n${textoTabla}` }]
+  } else if (tipoArchivo === 'calendario' || tipoArchivo === 'texto') {
+    const texto = await leerTexto(file)
+    partes = [{ text: `Contenido del archivo "${file.name}":\n${texto}` }]
+  } else if (tipoArchivo === 'pdf') {
+    const { base64 } = await archivoABase64(file)
+    partes = [
+      { inline_data: { mime_type: 'application/pdf', data: base64 } },
+      { text: `Analiza este documento "${file.name}".` },
+    ]
+  } else {
+    // Imagen: el modelo la lee por visión/OCR
+    const { base64, mediaType } = await archivoABase64(file)
+    partes = [
+      { inline_data: { mime_type: mediaType, data: base64 } },
+      { text: `Analiza esta imagen "${file.name}".` },
+    ]
   }
+
+  const resultado = await llamarGemini(apiKey, INSTRUCCION_FUENTE, partes)
+
+  // Validación mínima + valores por defecto para que el panel nunca reviente
+  if (!resultado.titulo) resultado.titulo = file.name
+  if (!CATEGORIAS.includes(resultado.categoria)) resultado.categoria = 'otros'
+  if (!Array.isArray(resultado.columnas)) resultado.columnas = []
+  if (!Array.isArray(resultado.registros)) resultado.registros = []
+  if (!Array.isArray(resultado.eventos)) resultado.eventos = []
+  if (!Array.isArray(resultado.metricas)) resultado.metricas = []
+  return resultado
+}
+
+/*
+  Genera el resumen global del panel a partir de las fuentes ya procesadas.
+  Devuelve { titular, insights: [], sugerencias: [] }.
+*/
+export async function generarResumenGlobal(fuentes, apiKey) {
+  const descripcion = fuentes
+    .map((f, i) => {
+      const r = f.resultado
+      const metricas = (r.metricas || []).map((m) => `${m.etiqueta}: ${m.valor}`).join('; ')
+      return `Fuente ${i + 1} — "${r.titulo}" (categoría: ${r.categoria}, ${r.registros.length} registros, ${r.eventos.length} eventos futuros).
+Resumen: ${r.resumen}
+Métricas: ${metricas || 'ninguna'}`
+    })
+    .join('\n\n')
+
+  const resultado = await llamarGemini(apiKey, INSTRUCCION_RESUMEN, [
+    { text: `Resúmenes de las fuentes conectadas al panel:\n\n${descripcion}` },
+  ])
+
+  if (!resultado.titular) throw new Error('El resumen devuelto no tiene la estructura esperada')
+  if (!Array.isArray(resultado.insights)) resultado.insights = []
+  if (!Array.isArray(resultado.sugerencias)) resultado.sugerencias = []
   return resultado
 }

@@ -1,0 +1,149 @@
+/* Zona del dashboard bajo el hero */
+
+.panel {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 4px 32px 64px;
+}
+
+.panel-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.panel-cabecera h2 {
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.panel-cabecera-sub {
+  font-size: 12.5px;
+  color: var(--color-texto-tenue);
+  margin-top: 2px;
+}
+
+/* Botones compartidos del panel */
+.boton-primario,
+.boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.boton-primario {
+  background: var(--color-violeta);
+  color: #fff;
+}
+
+.boton-primario:hover {
+  filter: brightness(1.1);
+}
+
+.boton-primario:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.boton-secundario {
+  background: transparent;
+  border-color: var(--color-borde);
+  color: var(--color-texto-suave);
+}
+
+.boton-secundario:hover {
+  border-color: var(--color-violeta);
+  color: var(--color-texto);
+}
+
+.boton-secundario:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Rejilla de gráficos y eventos */
+.panel-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.panel-card {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-card);
+  padding: 16px 18px;
+}
+
+.panel-card h3 {
+  font-size: 13.5px;
+  margin-bottom: 14px;
+}
+
+/* Sección de fuentes */
+.panel-fuentes-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.panel-fuentes-titulo h3 {
+  font-size: 15px;
+}
+
+.panel-fuentes-titulo span {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--color-card-hover);
+  font-size: 12px;
+  color: var(--color-texto-suave);
+}
+
+.panel-fuentes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+/* Estado vacío */
+.panel-vacio {
+  border: 1px dashed var(--color-borde);
+  border-radius: var(--radio);
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.panel-vacio h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.panel-vacio p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-texto-suave);
+  max-width: 460px;
+  margin: 0 auto 20px;
+}
+
+.panel-vacio-botones {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 4px 16px 48px;
+  }
+}

@@ -8,10 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <title>Empleia · Onboarding</title>
+    <title>Empleia · Panel Unificado</title>
   </head>
   <body>
     <!--
@@ -21,60 +21,28 @@
     <div id="root">
       <div
         id="diag"
-        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #9aa0b4; font: 13px/1.6 system-ui, sans-serif; text-align: center; padding: 24px;"
+        style="min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #9aa0b4; font: 13px/1.6 system-ui, sans-serif; text-align: center; padding: 24px; background: #0b0d14;"
       >
         Cargando Empleia…
       </div>
     </div>
 
-    <!-- Marcador de build (cambia con cada versión para detectar caché) -->
-    <div
-      id="marcador-build"
-      style="position: fixed; bottom: 6px; right: 8px; max-width: 92vw; word-break: break-all; font: 11px/1.4 system-ui, sans-serif; color: #10b981; z-index: 99999;"
-    >
-      BUILD v7 · gemini-2.5-flash-lite
-    </div>
-
-    <!--
-      Diagnóstico en pantalla (script clásico, se ejecuta siempre): muestra la
-      ruta real del <script type=module> servido y si ese archivo carga (HTTP)
-      o da 404. Así sabemos si Vercel sirve /assets (build) o /src (sin compilar).
-      Temporal: se quita cuando todo funcione.
-    -->
+    <!-- Captura global de errores: si la app no arranca, muestra la causa en
+         pantalla en vez de dejarla en negro (útil al probar en iPad/Safari). -->
     <script>
-      // Captura global de errores: muestra en pantalla el error real que impida
-      // arrancar la app (por ejemplo un fallo al evaluar el bundle en Safari).
-      window.addEventListener('error', function (e) {
+      function pintarError(msg) {
         var diag = document.getElementById('diag')
-        var msg = (e && e.message) || (e && e.error && e.error.message) || 'error desconocido'
         if (diag && diag.textContent.indexOf('ERROR JS') === -1) {
           diag.style.color = '#f59e0b'
           diag.textContent = 'ERROR JS: ' + msg
         }
+      }
+      window.addEventListener('error', function (e) {
+        pintarError((e && e.message) || (e && e.error && e.error.message) || 'error desconocido')
       })
       window.addEventListener('unhandledrejection', function (e) {
-        var diag = document.getElementById('diag')
         var r = e && e.reason
-        var msg = (r && r.message) || String(r || 'promesa rechazada')
-        if (diag && diag.textContent.indexOf('ERROR JS') === -1) {
-          diag.style.color = '#f59e0b'
-          diag.textContent = 'ERROR JS: ' + msg
-        }
-      })
-
-      document.addEventListener('DOMContentLoaded', function () {
-        var s = document.querySelector('script[type="module"]')
-        var src = s ? s.getAttribute('src') : '(sin script de módulo)'
-        var marcador = document.getElementById('marcador-build')
-        function pintarMarcador(txt) {
-          if (marcador) marcador.textContent = txt
-        }
-        pintarMarcador('v7 (gemini-2.5-flash-lite) · ' + src)
-        if (src && src.indexOf('/assets/') === 0) {
-          fetch(src)
-            .then(function (r) { pintarMarcador('v7 (gemini-2.5-flash-lite) · HTTP ' + r.status) })
-            .catch(function () { pintarMarcador('v7 · fetch FALLÓ') })
-        }
+        pintarError((r && r.message) || String(r || 'promesa rechazada'))
       })
     </script>
     <script type="module" src="/src/main.jsx"></script>

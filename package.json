@@ -1,16 +1,15 @@
 {
-  "name": "empleia-onboarding",
+  "name": "empleia-panel-unificado",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Empleado de Onboarding interno de Empleia — herramienta de migración de datos de clientes",
+  "description": "Demo de Empleia — Panel Unificado: sube Excels, PDFs, imágenes y calendarios y la IA los organiza en un solo dashboard",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "xlsx": "^0.18.5"

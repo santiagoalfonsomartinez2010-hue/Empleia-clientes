@@ -4,7 +4,7 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 
-// Punto de entrada de la aplicación del empleado de Onboarding.
+// Punto de entrada del Panel Unificado de Empleia.
 // Envuelto en ErrorBoundary para que cualquier fallo muestre un mensaje
 // legible en vez de dejar la pantalla en negro.
 ReactDOM.createRoot(document.getElementById('root')).render(

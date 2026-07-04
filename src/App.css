@@ -1,59 +1,20 @@
-/* Layout principal de 2 columnas: sidebar + zona de trabajo */
+/* Layout general: sidebar fija a la izquierda + zona principal con scroll */
+
 .app {
   display: flex;
   height: 100vh;
-  width: 100%;
-  background: var(--color-fondo);
   overflow: hidden;
 }
 
-/* Mensaje de error global (p. ej. fallo al cargar clientes) */
-.app__error-global {
+.app-principal {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  text-align: center;
-  color: #f87171;
-  font-size: 14px;
+  min-width: 0;
+  overflow-y: auto;
 }
 
-/* Toast de avisos (éxito / error) */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: var(--radio-sm);
-  font-size: 13.5px;
-  font-weight: 600;
-  box-shadow: var(--sombra);
-  z-index: 60;
-  max-width: 90vw;
-  animation: toast-subir 0.2s ease;
-}
-
-@keyframes toast-subir {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 8px);
+/* En pantallas estrechas la sidebar se oculta y queda la zona principal */
+@media (max-width: 860px) {
+  .sidebar {
+    display: none;
   }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-.toast--ok {
-  background: var(--verde-tinte);
-  color: var(--color-verde);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-
-.toast--error {
-  background: rgba(248, 113, 113, 0.12);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.35);
 }

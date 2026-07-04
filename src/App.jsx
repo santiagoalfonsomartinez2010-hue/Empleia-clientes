@@ -1,314 +1,200 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import './App.css'
+import { useEffect, useRef, useState } from 'react'
 import Sidebar from './components/Sidebar'
-import ZonaTrabajo from './components/ZonaTrabajo'
-import ModalNuevoCliente from './components/ModalNuevoCliente'
-import { generarInicial, colorCliente } from './lib/visuales'
+import Hero from './components/Hero'
+import Panel from './components/Panel'
+import ModalApiKey from './components/ModalApiKey'
 import { inferirTipoArchivo } from './lib/parseArchivo'
-import { analizarDocumento } from './lib/gemini'
-import { marcarDuplicados } from './lib/similitud'
-import { configDeTipo } from './lib/tiposDeteccion'
-import * as servicio from './services/onboardingService'
+import { analizarFuente, generarResumenGlobal } from './lib/gemini'
+import {
+  cargarFuentes,
+  guardarFuentes,
+  cargarResumen,
+  guardarResumen,
+  cargarApiKey,
+  guardarApiKey,
+  vaciarTodo,
+} from './lib/almacen'
+import { fuentesDeEjemplo, resumenDeEjemplo } from './lib/ejemplo'
+import './App.css'
 
-// Convierte una fila de clientes_empresa al modelo que usan los componentes
-function mapearCliente(fila) {
-  return {
-    id: fila.id,
-    nombre: fila.nombre,
-    sector: fila.sector,
-    ciudad: fila.ciudad,
-    progreso: fila.porcentaje_completado ?? 0,
-    inicial: generarInicial(fila.nombre),
-    color: colorCliente(fila.nombre),
-    documentos: [],
-    checklist: [],
-  }
-}
+/*
+  Panel Unificado de Empleia (demo).
 
-// Convierte un registro de documentos_procesados a una card "histórica"
-function mapearDocumento(d) {
-  return {
-    id: d.id,
-    nombre: d.nombre_archivo,
-    tipo: inferirTipoArchivo(d.nombre_archivo), // para el icono
-    estado: 'procesado',
-    historico: true, // ya insertado: no se vuelve a confirmar
-    deteccion: `${d.registros_extraidos ?? 0} ${d.tipo_detectado || 'registros'} · ${
-      d.duplicados_detectados ?? 0
-    } duplicado(s)`,
-    columnas: [],
-    filas: [],
-  }
-}
+  Flujo: el usuario sube archivos sueltos (Excel, PDF, imágenes, calendarios…),
+  cada uno se manda a la API de Gemini, que lo devuelve normalizado (título,
+  categoría, tabla, eventos y métricas), y el panel agrega todas las fuentes en
+  un único dashboard. Sin backend: la persistencia es localStorage.
+*/
+
+let contadorId = 0
+const nuevoId = () => `f-${Date.now()}-${contadorId++}`
 
 export default function App() {
-  const [clientes, setClientes] = useState([])
-  const [clienteActivoId, setClienteActivoId] = useState(null)
-  const [docExpandidoId, setDocExpandidoId] = useState(null)
-  const [cargandoClientes, setCargandoClientes] = useState(true)
-  const [errorGlobal, setErrorGlobal] = useState(null)
-  const [totalMigradoHoy, setTotalMigradoHoy] = useState(0)
-  const [modalAbierto, setModalAbierto] = useState(false)
-  const [aviso, setAviso] = useState(null) // toast: { tipo: 'ok'|'error', texto }
-  // IDs de clientes cuyo detalle ya se ha pedido (evita cargas duplicadas)
-  const detalleSolicitado = useRef(new Set())
+  const [fuentes, setFuentes] = useState(() => cargarFuentes())
+  const [resumen, setResumen] = useState(() => cargarResumen())
+  const [apiKey, setApiKey] = useState(() => cargarApiKey())
+  const [modalKeyAbierto, setModalKeyAbierto] = useState(false)
+  const [generandoResumen, setGenerandoResumen] = useState(false)
+  const [avisoResumen, setAvisoResumen] = useState(null)
 
-  const clienteActivo = clientes.find((c) => c.id === clienteActivoId) || null
+  const inputArchivosRef = useRef(null)
+  const panelRef = useRef(null)
 
-  // Muestra un aviso temporal (toast) que desaparece a los 3,5 segundos
-  const mostrarAviso = useCallback((tipo, texto) => {
-    setAviso({ tipo, texto })
-    setTimeout(() => setAviso(null), 3500)
-  }, [])
-
-  // Aplica cambios a un documento concreto dentro de un cliente
-  const actualizarDoc = useCallback((clienteId, docId, cambios) => {
-    setClientes((prev) =>
-      prev.map((c) =>
-        c.id !== clienteId
-          ? c
-          : {
-              ...c,
-              documentos: c.documentos.map((d) => (d.id === docId ? { ...d, ...cambios } : d)),
-            }
-      )
-    )
-  }, [])
-
-  // 1) Al cargar la app: traer la lista real de clientes y el total migrado hoy
+  // Persistencia automática en localStorage
   useEffect(() => {
-    let activo = true
-    ;(async () => {
-      try {
-        const [filas, total] = await Promise.all([
-          servicio.listarClientes(),
-          servicio.contarMigradoHoy().catch(() => 0),
-        ])
-        if (!activo) return
-        const mapeados = filas.map(mapearCliente)
-        setClientes(mapeados)
-        setTotalMigradoHoy(total)
-        if (mapeados.length > 0) setClienteActivoId(mapeados[0].id)
-      } catch (err) {
-        if (activo) setErrorGlobal('No se pudieron cargar los clientes: ' + err.message)
-      } finally {
-        if (activo) setCargandoClientes(false)
-      }
-    })()
-    return () => {
-      activo = false
-    }
-  }, [])
-
-  // 2) Cuando cambia el cliente activo, cargar su detalle (documentos + checklist)
-  //    una sola vez por cliente (el ref evita peticiones duplicadas).
+    guardarFuentes(fuentes)
+  }, [fuentes])
   useEffect(() => {
-    if (!clienteActivoId) return
-    if (detalleSolicitado.current.has(clienteActivoId)) return
-    detalleSolicitado.current.add(clienteActivoId)
+    guardarResumen(resumen)
+  }, [resumen])
 
-    let activo = true
-    ;(async () => {
-      try {
-        const [docs, { items, porcentaje }] = await Promise.all([
-          servicio.listarDocumentos(clienteActivoId),
-          servicio.construirChecklist(clienteActivoId),
-        ])
-        if (!activo) return
-        setClientes((prev) =>
-          prev.map((c) =>
-            c.id !== clienteActivoId
-              ? c
-              : { ...c, documentos: docs.map(mapearDocumento), checklist: items, progreso: porcentaje }
-          )
-        )
-      } catch (err) {
-        detalleSolicitado.current.delete(clienteActivoId) // permitir reintento
-        if (activo) mostrarAviso('error', 'Error al cargar el cliente: ' + err.message)
-      }
-    })()
-    return () => {
-      activo = false
+  // Abre el selector de archivos (pidiendo antes la API key si falta)
+  function pedirArchivos() {
+    if (!apiKey) {
+      setModalKeyAbierto(true)
+      return
     }
-  }, [clienteActivoId, mostrarAviso])
-
-  // Selecciona un cliente y colapsa el documento abierto
-  const seleccionarCliente = (id) => {
-    setClienteActivoId(id)
-    setDocExpandidoId(null)
-  }
-
-  // Crea un cliente real en Supabase y lo deja seleccionado
-  const crearCliente = async (datos) => {
-    const fila = await servicio.crearCliente(datos)
-    const nuevo = mapearCliente(fila)
-    setClientes((prev) => [nuevo, ...prev])
-    setClienteActivoId(nuevo.id)
-    setDocExpandidoId(null)
-    setModalAbierto(false)
-    mostrarAviso('ok', `Cliente "${fila.nombre}" creado.`)
-  }
-
-  // Expande / colapsa un documento
-  const toggleDoc = (docId) => {
-    setDocExpandidoId((actual) => (actual === docId ? null : docId))
+    inputArchivosRef.current?.click()
   }
 
   /*
-    Sube y analiza archivos reales: por cada archivo añade una card en estado
-    "procesando", lo manda a la API de Anthropic, detecta duplicados contra la
-    base de datos y muestra la previsualización con los datos extraídos.
+    Procesa una lista de archivos: crea cada fuente en estado "procesando" y
+    las analiza en serie (la capa gratuita de Gemini limita las peticiones por
+    minuto, así que en paralelo fallarían con lotes grandes).
   */
-  const procesarArchivos = useCallback(
-    async (archivos) => {
-      if (!clienteActivo) return
-      const clienteId = clienteActivo.id
+  async function procesarArchivos(lista) {
+    const archivos = Array.from(lista || [])
+    if (archivos.length === 0) return
+    if (!apiKey) {
+      setModalKeyAbierto(true)
+      return
+    }
 
-      for (const file of archivos) {
-        const idDoc = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-        const tipoArchivo = inferirTipoArchivo(file.name)
+    const nuevas = archivos.map((archivo) => ({
+      id: nuevoId(),
+      nombreArchivo: archivo.name,
+      tipoArchivo: inferirTipoArchivo(archivo.name),
+      estado: 'procesando',
+      creado: Date.now(),
+    }))
+    setFuentes((previas) => [...previas, ...nuevas])
+    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-        // 1) Card en estado "procesando" (no se queda en blanco)
-        const docProcesando = {
-          id: idDoc,
-          nombre: file.name,
-          tipo: tipoArchivo,
-          estado: 'procesando',
-          deteccion: 'Analizando documento…',
-          historico: false,
-          columnas: [],
-          filas: [],
-        }
-        setClientes((prev) =>
-          prev.map((c) =>
-            c.id === clienteId ? { ...c, documentos: [docProcesando, ...c.documentos] } : c
-          )
+    for (let i = 0; i < archivos.length; i++) {
+      const meta = nuevas[i]
+      try {
+        const resultado = await analizarFuente(archivos[i], meta.tipoArchivo, apiKey)
+        setFuentes((previas) =>
+          previas.map((f) => (f.id === meta.id ? { ...f, estado: 'listo', resultado } : f))
         )
-
-        try {
-          // 2) Analizar el documento con la API de Anthropic
-          const { tipo, registros } = await analizarDocumento(file, tipoArchivo)
-          const config = configDeTipo(tipo)
-          if (!config) throw new Error(`Tipo de datos no reconocido: ${tipo}`)
-
-          // 3) Detectar duplicados contra lo que ya hay en la BD para este cliente
-          const existentes = await servicio.obtenerValoresExistentes(tipo, clienteId)
-          const filasMarcadas = marcarDuplicados(registros, existentes, config.campoClave)
-          const duplicados = filasMarcadas.filter((f) => f.__duplicado).length
-
-          // 4) Pasar la card a "procesado" con los datos extraídos
-          actualizarDoc(clienteId, idDoc, {
-            estado: 'procesado',
-            tipoDetectado: tipo,
-            columnas: config.columnas,
-            filas: filasMarcadas,
-            deteccion: `${filasMarcadas.length} ${config.etiqueta} detectados${
-              duplicados ? ` · ${duplicados} duplicado(s) unificado(s)` : ''
-            }`,
-          })
-          setDocExpandidoId(idDoc) // se abre para previsualizar
-        } catch (err) {
-          // Error al analizar: la card lo refleja en vez de quedarse colgada
-          actualizarDoc(clienteId, idDoc, {
-            estado: 'error',
-            deteccion: 'Error al analizar: ' + err.message,
-          })
-          mostrarAviso('error', err.message)
-        }
+      } catch (error) {
+        setFuentes((previas) =>
+          previas.map((f) => (f.id === meta.id ? { ...f, estado: 'error', error: error.message } : f))
+        )
       }
-    },
-    [clienteActivo, actualizarDoc, mostrarAviso]
-  )
+    }
+  }
 
-  /*
-    Confirma e inserta los datos previsualizados:
-     a) inserta las filas no duplicadas en la tabla correspondiente,
-     b) registra el documento en documentos_procesados,
-     c) actualiza el porcentaje del cliente,
-     d) refresca documentos y checklist con datos reales.
-  */
-  const confirmarDocumento = async (documento) => {
-    if (!clienteActivo) return
-    const clienteId = clienteActivo.id
-    const config = configDeTipo(documento.tipoDetectado)
-    if (!config) return
-
-    const noDuplicados = documento.filas.filter((f) => !f.__duplicado)
-    const duplicados = documento.filas.length - noDuplicados.length
-
+  // Resumen global: cruza todas las fuentes ya procesadas con una segunda llamada
+  async function generarResumen() {
+    const listas = fuentes.filter((f) => f.estado === 'listo')
+    if (listas.length === 0) return
+    if (!apiKey) {
+      setModalKeyAbierto(true)
+      return
+    }
+    setGenerandoResumen(true)
+    setAvisoResumen(null)
     try {
-      // a) Insertar los registros no duplicados
-      if (noDuplicados.length > 0) {
-        await servicio.insertarRegistros(documento.tipoDetectado, clienteId, noDuplicados)
-      }
-      // b) Registrar el documento procesado
-      await servicio.registrarDocumento({
-        clienteId,
-        nombreArchivo: documento.nombre,
-        tipoDetectado: documento.tipoDetectado,
-        registrosExtraidos: noDuplicados.length,
-        duplicadosDetectados: duplicados,
-      })
-      // c) Recalcular y guardar el porcentaje del cliente
-      const { items, porcentaje } = await servicio.construirChecklist(clienteId)
-      await servicio.actualizarPorcentaje(clienteId, porcentaje)
-      // d) Refrescar documentos y total migrado hoy
-      const [docs, total] = await Promise.all([
-        servicio.listarDocumentos(clienteId),
-        servicio.contarMigradoHoy().catch(() => totalMigradoHoy),
-      ])
-
-      setClientes((prev) =>
-        prev.map((c) =>
-          c.id !== clienteId
-            ? c
-            : { ...c, documentos: docs.map(mapearDocumento), checklist: items, progreso: porcentaje }
-        )
-      )
-      setTotalMigradoHoy(total)
-      setDocExpandidoId(null)
-      mostrarAviso('ok', `${noDuplicados.length} registro(s) insertado(s) correctamente.`)
-    } catch (err) {
-      mostrarAviso('error', 'No se pudo insertar: ' + err.message)
+      setResumen(await generarResumenGlobal(listas, apiKey))
+    } catch (error) {
+      setAvisoResumen(error.message)
+    } finally {
+      setGenerandoResumen(false)
     }
   }
 
-  // Editar los datos previsualizados (pendiente para una iteración futura)
-  const editarDocumento = (documento) => {
-    mostrarAviso('ok', `La edición manual de "${documento.nombre}" llegará en una próxima versión.`)
+  // Carga las cuatro fuentes simuladas (para enseñar la demo sin API key)
+  function cargarEjemplo() {
+    setFuentes(fuentesDeEjemplo())
+    setResumen(resumenDeEjemplo())
+    setAvisoResumen(null)
+    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function vaciarPanel() {
+    if (!window.confirm('¿Vaciar el panel? Se quitarán todas las fuentes y el resumen.')) return
+    setFuentes([])
+    setResumen(null)
+    setAvisoResumen(null)
+    vaciarTodo()
+  }
+
+  function quitarFuente(id) {
+    setFuentes((previas) => previas.filter((f) => f.id !== id))
+  }
+
+  function guardarKey(key) {
+    guardarApiKey(key)
+    setApiKey(key)
+    setModalKeyAbierto(false)
   }
 
   return (
     <div className="app">
       <Sidebar
-        clientes={clientes}
-        clienteActivoId={clienteActivoId}
-        cargando={cargandoClientes}
-        totalMigradoHoy={totalMigradoHoy}
-        onSeleccionarCliente={seleccionarCliente}
-        onNuevoCliente={() => setModalAbierto(true)}
+        fuentes={fuentes}
+        hayApiKey={Boolean(apiKey)}
+        onAnadir={pedirArchivos}
+        onEjemplo={cargarEjemplo}
+        onVaciar={vaciarPanel}
+        onApiKey={() => setModalKeyAbierto(true)}
       />
 
-      {errorGlobal ? (
-        <main className="app__error-global">{errorGlobal}</main>
-      ) : (
-        <ZonaTrabajo
-          cliente={clienteActivo}
-          cargando={cargandoClientes}
-          docExpandidoId={docExpandidoId}
-          onToggleDoc={toggleDoc}
-          onProcesarArchivos={procesarArchivos}
-          onConfirmar={confirmarDocumento}
-          onEditar={editarDocumento}
+      <main className="app-principal">
+        <Hero
+          hayFuentes={fuentes.length > 0}
+          onArchivosSoltados={procesarArchivos}
+          onPedirArchivos={pedirArchivos}
+          onEjemplo={cargarEjemplo}
+        />
+        <div ref={panelRef}>
+          <Panel
+            fuentes={fuentes}
+            resumen={resumen}
+            generandoResumen={generandoResumen}
+            avisoResumen={avisoResumen}
+            onGenerarResumen={generarResumen}
+            onQuitarFuente={quitarFuente}
+            onPedirArchivos={pedirArchivos}
+            onEjemplo={cargarEjemplo}
+          />
+        </div>
+      </main>
+
+      {/* Selector de archivos oculto, compartido por sidebar y hero */}
+      <input
+        ref={inputArchivosRef}
+        type="file"
+        multiple
+        hidden
+        accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp,.gif,.ics,.json,.txt,.md"
+        onChange={(e) => {
+          procesarArchivos(e.target.files)
+          e.target.value = ''
+        }}
+      />
+
+      {modalKeyAbierto && (
+        <ModalApiKey
+          onGuardar={guardarKey}
+          onCerrar={() => setModalKeyAbierto(false)}
+          onEjemplo={() => {
+            setModalKeyAbierto(false)
+            cargarEjemplo()
+          }}
         />
       )}
-
-      {modalAbierto && (
-        <ModalNuevoCliente onCerrar={() => setModalAbierto(false)} onCrear={crearCliente} />
-      )}
-
-      {/* Toast de avisos (éxito / error) */}
-      {aviso && <div className={`toast toast--${aviso.tipo}`}>{aviso.texto}</div>}
     </div>
   )
 }
